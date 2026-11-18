@@ -1,0 +1,15 @@
+# Chỉ track file của kit. Folder phim (render rất nặng) và kết quả kiểm tra không lên git.
+/*
+!/.gitignore
+!/README.md
+!/CLAUDE.md
+!/BRIEF.md
+!/PHAT-AM.md
+!/setup/
+!/smoke/
+/smoke/out/
+!/.claude/
+!/assets/
+/assets/*
+!/assets/.gitkeep
+/.claude/settings.local.json

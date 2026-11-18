@@ -1,0 +1,52 @@
+<!doctype html>
+<!-- Smoke test 4 giây: kiểm tra pipeline render thật (Chromium headless → frame → ffmpeg). Không dùng thư viện style. -->
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #111; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<canvas id="gl" width="1920" height="1080"></canvas>
+<canvas id="c2d" width="1920" height="1080"></canvas>
+<script>
+const W = 1920, H = 1080;
+window.DUR = 4;
+
+// WebGL: nền gradient chạy theo t. Hỏng WebGL thì render báo lỗi luôn, đúng thứ cần bắt.
+const gl = document.getElementById('gl').getContext('webgl', { preserveDrawingBuffer: true });
+const vs = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }';
+const fs = 'precision mediump float; uniform float t; void main(){ vec2 uv = gl_FragCoord.xy / vec2(1920., 1080.);' +
+           ' gl_FragColor = vec4(.15 + .25 * uv.x, .2 + .2 * sin(t * 1.5 + uv.y * 3.), .45, 1.); }';
+function sh(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+const prog = gl.createProgram();
+gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+gl.linkProgram(prog); gl.useProgram(prog);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'p');
+gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const uT = gl.getUniformLocation(prog, 't');
+
+// 2D: chữ tiếng Việt có dấu + một chấm tròn chạy ngang (kiểm tra frame có thay đổi theo t).
+const ctx = document.getElementById('c2d').getContext('2d');
+window.render = t => {
+  gl.uniform1f(uT, t); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  ctx.font = 'bold 96px sans-serif';
+  ctx.fillText('Kiểm tra render', W / 2, 460);
+  ctx.font = '56px sans-serif';
+  ctx.fillText('Tiếng Việt: ă â đ ê ô ơ ư — ả ã ạ ấ ầ ẩ ẫ ậ', W / 2, 580);
+  ctx.font = '40px monospace';
+  ctx.fillText('t = ' + t.toFixed(2) + ' s', W / 2, 680);
+  ctx.beginPath(); ctx.arc(160 + (W - 320) * (t / window.DUR), 860, 40, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffc676'; ctx.fill();
+};
+window.render(0);
+document.fonts.ready.then(() => { window.READY = true; });
+</script>
+</body>
+</html>
